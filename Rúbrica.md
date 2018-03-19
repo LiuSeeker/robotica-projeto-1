@@ -1,9 +1,9 @@
-Avaliação do grupo:
+#Avaliação do grupo
 Há tarefas distribuídas e concluídas no Trello e artribuídas a mais de uma pessoa.
 No Github há commits significativos de mais de uma pessoa.
 
 
-Avaliação individual:
+#Avaliação individual
 
 Básico (C)
 As contribuições ao projeto são mínimas, conforme Trello e Github.
@@ -15,7 +15,7 @@ Avaliou os colegas segundo a rubrica do Catme usando o Google Form em duas
 ocasiões.
 
 
-Avaliação do robô:
+#Avaliação do robô
 
 Básico (C)
 
