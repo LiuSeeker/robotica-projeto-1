@@ -32,7 +32,7 @@ Proficiente (B)
 - Os dois objetos precisam ser detectados usando técnicas diferentes.
 - Não pode usar deteção simples de círculos via Hough.
 - Um dos comportamentos visuais precisa ser de seguir o objeto, e o comportamento de seguir precisa usar controle proporcional.
-- O controle tem que ser feito usando.
+- O controle tem que ser feito usando máquinas de estado Smach.
 - Apresenta comportamento de sobrevivência capaz de usar Laser _e_ IMU.
 
 
