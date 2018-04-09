@@ -9,6 +9,10 @@ from geometry_msgs.msg import Twist, Vector3
 from sensor_msgs.msg import LaserScan
 
 
+def converte(valor):
+	return valor*44.4/0.501
+
+
 def scaneou(dado):
 	#print("Faixa valida: ", dado.range_min , " - ", dado.range_max )
 	#print("Leituras:")
@@ -23,36 +27,37 @@ def scaneou(dado):
 
 	for i in range(len(distancias)):
 		if i <= 40:
-			if distancias[i] < 0.3:
-				velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, -0.5))
-				desviando = True
-				print("mt frente e")
-				if menor_frente_esquerda > distancias[i]:
-					menor_frente_esquerda = distancias[i]
-			elif distancias[i] < 0.6:
+			
+			if converte(distancias[i]) < 50 and converte(distancias[i]) >= 40:
 				velocidade = Twist(Vector3(0.2, 0, 0), Vector3(0, 0, -0.4))
 				desviando = True
 				print("frente e")
+			if converte(distancias[i]) < 40:
+				velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, -0.5))
+				desviando = True
+				print("mt frente e")
+				if menor_frente_esquerda > converte(distancias[i]):
+					menor_frente_esquerda = converte(distancias[i])
 			
 		if i >= 320:
-			if distancias[i] < 0.3:
-				velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.5))
-				desviando = True
-				print("mt frente d")
-				if menor_frente_direita > distancias[i]:
-					menor_frente_direita = distancias[i]
-			elif distancias[i] < 0.6:
+			if converte(distancias[i]) < 50 and converte(distancias[i]) >= 40:
 				velocidade = Twist(Vector3(0.2, 0, 0), Vector3(0, 0, 0.4))
 				desviando = True
 				print("frente d")
+			if converte(distancias[i]) < 40:
+				velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.5))
+				desviando = True
+				print("mt frente d")
+				if menor_frente_direita > converte(distancias[i]):
+					menor_frente_direita = converte(distancias[i])
 			
 		if i <= 80 and i > 40:
-			if distancias[i] < 0.25:
+			if converte(distancias[i]) < 20:
 				velocidade = Twist(Vector3(0.2, 0, 0), Vector3(0, 0, -0.2))
 				desviando = True
 				print("mt esq")
 		if i < 320 and i >= 290:
-			if distancias[i] < 0.25:
+			if converte(distancias[i]) < 20:
 				velocidade = Twist(Vector3(0.2, 0, 0), Vector3(0, 0, 0.2))
 				desviando = True
 				print("mt dir")
