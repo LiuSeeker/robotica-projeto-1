@@ -2,73 +2,91 @@
 # -*- coding:utf-8 -*-
 
 import rospy
-
+from geometry_msgs.msg import Twist
 import numpy as np
-
 from geometry_msgs.msg import Twist, Vector3
 from sensor_msgs.msg import Imu
 import transformations
 import math
-
-global ang_inicial
-global ang_final
-
-ang_inicial = 0
-ang_final = 0
-
-def leu_imu2(dado):
-	global ang_inicial
-	global ang_final
-	quat = dado.orientation
-	lista = [quat.x, quat.y, quat.z, quat.w]
-	angulos = np.degrees(transformations.euler_from_quaternion(lista))
-
-	ang_inicial = angulos[0]
-
-	if ang_inicial < 180 and ang_inicial >= 0:
-		ang_final = ang_inicial - 180
-	elif ang_inicial > -180 and ang_inicial < 0:
-		ang_final = ang_inicial + 180
-
-	print("A")
-	recebe_scan2.unregister()
-
-recebe_scan2 = rospy.Subscriber("/imu", Imu, leu_imu2)
-print(ang_inicial, ang_final)
-
-
 
 
 def leu_imu(dado):
 	quat = dado.orientation
 	lista = [quat.x, quat.y, quat.z, quat.w]
 	angulos = np.degrees(transformations.euler_from_quaternion(lista))
+	mensagem = """
+	Tempo: {:}
+	Orientação: {:.2f}, {:.2f}, {:.2f}
+	Vel. angular: x {:.2f}, y {:.2f}, z {:.2f}\
 
-	ang_atual = angulos[0]
+	Aceleração linear:
+	x: {:.2f}
+	y: {:.2f}
+	z: {:.2f}
 
-	velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.8))
 
-	if ang_atual <= ang_final+2 and ang_atual >= ang_final-2:
-		print("b")
-		velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0))
+""".format(dado.header.stamp, angulos[0], angulos[1], angulos[2], dado.angular_velocity.x, dado.angular_velocity.y, dado.angular_velocity.z, dado.linear_acceleration.x, dado.linear_acceleration.y, dado.linear_acceleration.z)
+	print(mensagem)
 
-	velocidade_saida.publish(velocidade)
+def girar(graus):
 
-	print(ang_inicial, ang_atual, ang_final)
+	PI = 3.1415926535897
+	#Starts a new node
+	rospy.init_node('robot_cleaner', anonymous=True)
+	velocity_publisher = rospy.Publisher('/turtle1/cmd_vel', Twist, queue_size=10)
+	vel_msg = Twist()
 
+    # Receiveing the user's input
+	print("Let's rotate your robot")
+	speed = 0.6
+	angle = graus
+	clockwise = False
+
+    #Converting from angles to radians
+	angular_speed = speed*2*PI/360
+	relative_angle = angle*2*PI/360
+
+    #We wont use linear components
+	vel_msg.linear.x=0
+	vel_msg.linear.y=0
+	vel_msg.linear.z=0
+	vel_msg.angular.x = 0
+	vel_msg.angular.y = 0
+
+    # Checking if our movement is CW or CCW
+	if clockwise:
+	    vel_msg.angular.z = -abs(angular_speed)
+	else:
+	    vel_msg.angular.z = abs(angular_speed)
+    # Setting the current time for distance calculus
+	t0 = rospy.Time.now().to_sec()
+	current_angle = 0
+
+	while(current_angle < relative_angle):
+	    velocity_publisher.publish(vel_msg)
+	    t1 = rospy.Time.now().to_sec()
+	    current_angle = angular_speed*(t1-t0)
+
+    #Forcing our robot to stop
+	vel_msg.angular.z = 0
+	velocity_publisher.publish(vel_msg)
+	rospy.spin()
 
 
 
 if __name__=="__main__":
-	global velocidade_saida
 
-	rospy.init_node("vira")
+	#rospy.init_node("le_imu")
 
-	velocidade_saida = rospy.Publisher("/cmd_vel", Twist, queue_size = 2)
-	recebe_scan = rospy.Subscriber("/imu", Imu, leu_imu)
+	#recebe_scan = rospy.Subscriber("/imu", Imu, leu_imu)
 
-	while not rospy.is_shutdown():
-		print("Main loop")
-		rospy.sleep(2)
+	try:
+		girar(180)
+	except rospy.ROSInterruptException:
+		pass
+
+	#while not rospy.is_shutdown():
+#		print("Main loop")
+#		rospy.sleep(2)
 
 

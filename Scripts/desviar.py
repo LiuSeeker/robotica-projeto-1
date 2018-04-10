@@ -28,37 +28,37 @@ def scaneou(dado):
 	for i in range(len(distancias)):
 		if i <= 40:
 			
-			if converte(distancias[i]) < 50 and converte(distancias[i]) >= 40:
-				velocidade = Twist(Vector3(0.2, 0, 0), Vector3(0, 0, -0.5))
+			if converte(distancias[i]) < 50 and converte(distancias[i]) >= 30:
+				velocidade = Twist(Vector3(0.2, 0, 0), Vector3(0, 0, -0.7))
 				desviando = True
 				print("frente e")
-			elif converte(distancias[i]) < 40:
-				velocidade = Twist(Vector3(-0.1, 0, 0), Vector3(0, 0, -0.6))
+			elif converte(distancias[i]) < 30 and  converte(distancias[i]) != 0:
+				velocidade = Twist(Vector3(-0.1, 0, 0), Vector3(0, 0, -0.9))
 				desviando = True
 				print("mt frente e")
 				if menor_frente_esquerda > converte(distancias[i]):
 					menor_frente_esquerda = converte(distancias[i])
 			
 		if i >= 320:
-			if converte(distancias[i]) < 50 and converte(distancias[i]) >= 40:
-				velocidade = Twist(Vector3(0.2, 0, 0), Vector3(0, 0, 0.5))
+			if converte(distancias[i]) < 50 and converte(distancias[i]) >= 30:
+				velocidade = Twist(Vector3(0.2, 0, 0), Vector3(0, 0, 0.7))
 				desviando = True
 				print("frente d")
-			elif converte(distancias[i]) < 40:
-				velocidade = Twist(Vector3(-0.1, 0, 0), Vector3(0, 0, 0.6))
+			elif converte(distancias[i]) < 30 and  converte(distancias[i]) != 0:
+				velocidade = Twist(Vector3(-0.1, 0, 0), Vector3(0, 0, 0.9))
 				desviando = True
 				print("mt frente d")
 				if menor_frente_direita > converte(distancias[i]):
 					menor_frente_direita = converte(distancias[i])
 			
-		if i <= 80 and i > 40:
-			if converte(distancias[i]) < 20:
-				velocidade = Twist(Vector3(0.2, 0, 0), Vector3(0, 0, -0.2))
+		if i <= 70 and i > 40:
+			if converte(distancias[i]) < 25 and converte(distancias[i]) != 0:
+				velocidade = Twist(Vector3(0.1, 0, 0), Vector3(0, 0, -0.5))
 				desviando = True
 				print("mt esq")
 		if i < 320 and i >= 290:
-			if converte(distancias[i]) < 20:
-				velocidade = Twist(Vector3(0.2, 0, 0), Vector3(0, 0, 0.2))
+			if converte(distancias[i]) < 25 and converte(distancias[i]) != 0:
+				velocidade = Twist(Vector3(0.1, 0, 0), Vector3(0, 0, 0.5))
 				desviando = True
 				print("mt dir")
 
@@ -88,6 +88,6 @@ if __name__=="__main__":
 
 	while not rospy.is_shutdown():
 		print("Oeee")
-		rospy.sleep(1.)
+		rospy.sleep(0.5)
 
 
