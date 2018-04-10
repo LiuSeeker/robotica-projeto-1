@@ -29,11 +29,11 @@ def scaneou(dado):
 		if i <= 40:
 			
 			if converte(distancias[i]) < 50 and converte(distancias[i]) >= 40:
-				velocidade = Twist(Vector3(0.2, 0, 0), Vector3(0, 0, -0.4))
+				velocidade = Twist(Vector3(0.2, 0, 0), Vector3(0, 0, -0.5))
 				desviando = True
 				print("frente e")
-			if converte(distancias[i]) < 40:
-				velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, -0.5))
+			elif converte(distancias[i]) < 40:
+				velocidade = Twist(Vector3(-0.1, 0, 0), Vector3(0, 0, -0.6))
 				desviando = True
 				print("mt frente e")
 				if menor_frente_esquerda > converte(distancias[i]):
@@ -41,11 +41,11 @@ def scaneou(dado):
 			
 		if i >= 320:
 			if converte(distancias[i]) < 50 and converte(distancias[i]) >= 40:
-				velocidade = Twist(Vector3(0.2, 0, 0), Vector3(0, 0, 0.4))
+				velocidade = Twist(Vector3(0.2, 0, 0), Vector3(0, 0, 0.5))
 				desviando = True
 				print("frente d")
-			if converte(distancias[i]) < 40:
-				velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.5))
+			elif converte(distancias[i]) < 40:
+				velocidade = Twist(Vector3(-0.1, 0, 0), Vector3(0, 0, 0.6))
 				desviando = True
 				print("mt frente d")
 				if menor_frente_direita > converte(distancias[i]):
