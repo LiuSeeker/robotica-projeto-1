@@ -19,7 +19,7 @@
 
 import rospy
 import actionlib
-from geometry_msgs.msg import Twist, Point, Quaternion
+from geometry_msgs.msg import Twist, Point, Quaternion, Vector3
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import JointState
 import turtlebot3_example.msg
@@ -63,15 +63,15 @@ class Turtlebot3Action(object):
         diff_encoder = (np.deg2rad(angle) * 0.080) / (0.207 / 4096)
         while (abs(self.init_right_encoder - self.right_encoder) < abs(diff_encoder)):
             if diff_encoder >= 0:
-                self.twist.angular.z = -0.5
+                velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, -0.5))
             else:
-                self.twist.angular.z = 0.5
+                velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.5))
 
-            self.cmd_pub.publish(self.twist)
+            self.cmd_pub.publish(velocidade)
             self.r.sleep()
         self.init_stats = True
-        self.twist.angular.z = 0
-        self.cmd_pub.publish(self.twist)
+        velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0))
+        self.cmd_pub.publish(velocidade)
         self.r.sleep()
 
     def go_front(self, lenght, count):
@@ -159,7 +159,11 @@ class Turtlebot3Action(object):
             self._as.set_succeeded(self._result)
 
 if __name__ == '__main__':
-    rospy.init_node('turtlebot3')
-    server = Turtlebot3Action(rospy.get_name())
-    rospy.spin()
-    
+    while not rospy.is_shutdown():
+        
+        rospy.init_node('turtlebot3')
+        server = Turtlebot3Action(rospy.get_name())
+        print("Main loop")
+        server.turn(180)
+        rospy.spin()
+        rospy.sleep(2)
