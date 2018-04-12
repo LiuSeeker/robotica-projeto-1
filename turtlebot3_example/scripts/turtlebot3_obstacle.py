@@ -28,7 +28,7 @@ class Obstacle():
                     if msg.ranges[i] >= self.LIDAR_ERR:
                         self.scan_filter.append(msg.ranges[i])
 
-            if min(self.scan_filter) < 0.2:
+            if min(self.scan_filter) < 0.4:
                 self.twist.linear.x = 0.0
                 self.twist.angular.z = 0.0
                 self._cmd_pub.publish(self.twist)
