@@ -77,9 +77,8 @@ def scaneou(dado):
 
 if __name__=="__main__":
 	global velocidade_saida
-	global condicao
 
-	rospy.init_node("le_scan")
+	rospy.init_node("desviar")
 
 	velocidade_saida = rospy.Publisher("/cmd_vel", Twist, queue_size = 2 )
 	recebe_scan = rospy.Subscriber("/scan", LaserScan, scaneou)

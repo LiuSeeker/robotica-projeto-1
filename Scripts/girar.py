@@ -25,10 +25,10 @@ def leu_imu2(dado):
 
 	ang_inicial = angulos[0]
 
-	if ang_inicial < 180 and ang_inicial >= 0:
-		ang_final = ang_inicial - 180
-	elif ang_inicial > -180 and ang_inicial < 0:
-		ang_final = ang_inicial + 180
+	if ang_inicial <= 180 and ang_inicial >= -177:
+		ang_final = ang_inicial - 4
+	elif ang_inicial > -180 and ang_inicial < -177:
+		ang_final = ang_inicial + 4
 
 	print("A")
 	recebe_scan2.unregister()
