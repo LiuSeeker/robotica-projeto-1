@@ -159,11 +159,10 @@ class Turtlebot3Action(object):
             self._as.set_succeeded(self._result)
 
 if __name__ == '__main__':
+    rospy.init_node('turtlebot3')
+
     while not rospy.is_shutdown():
         
-        rospy.init_node('turtlebot3')
         server = Turtlebot3Action(rospy.get_name())
         print("Main loop")
-        server.turn(180)
-        rospy.spin()
-        rospy.sleep(2)
+        print(server.execute_cb())
