@@ -50,7 +50,6 @@ def roda_todo_frame(imagem):
 	print(gray)
 	faces = face_cascade.detectMultiScale(gray, 1.3, 5)
 
-	cv2.imshow("Camera", cv_image)
 	
 	for(x,y,z,w) in faces:
 		cv2.rectangle(cv_image, (x,y), (x+z, y+w), (255,0,0), 2)
@@ -66,6 +65,8 @@ def roda_todo_frame(imagem):
 			dif_x = None
 
 
+	cv2.imshow("Camera", cv_image)
+	cv2.waitKey(1)
 
 
 ## Classes - estados
