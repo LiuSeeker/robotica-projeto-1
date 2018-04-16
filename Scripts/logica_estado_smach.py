@@ -132,21 +132,7 @@ class Virar(smash.State):
     	smach.State.__init__(self, outcomes=['virado'])
 
   	def execute(self, userdata):
-  	quat = dado.orientation
-  		lista = [quat.x, quat.y, quat.z, quat.w]
-  		angulos = np.degrees(transformations.euler_from_quaternion(lista))
-
-  		ang_inicial, ang_final = angulos_inicial_e_final()
-
-  		ang_atual = angulos[0]
-
-  		velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.7))
-
-  		if ang_atual <= ang_final+3 and ang_atual >= ang_final-3:
-  			velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0))
-
-  		velocidade_saida.publish(velocidade)
-      	return 'virado'
+  	 return 'virado'
 
 #Essa classe gira 360 graus
 class Girar(smash.State):
