@@ -6,10 +6,10 @@ from geometry_msgs.msg import Twist
 
 def girar(dado):
 	global velocidade_saida
-	global gira
+	global girar
 	rospy.loginfo('GIRANDO')
-	#comando para girar
-	if abs(gira) < 3:
+
+	if abs(girar) < 3:
 		vel = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.3))
 		velocidade_saida.publish(vel)
 	else:
