@@ -3,7 +3,6 @@ import smach_ros
 
 ## Importa cada uma das funcoes de seus respectivos arquivos
 
-
 def converte(valor):
 		return valor*44.4/0.501
 
@@ -29,6 +28,7 @@ def roda_todo_frame(imagem):
 		media = x+z/2
 		centro = imagem.shape[1]//2
 
+
 def scaneou(dado):
 	global distancias
 	#print("Faixa valida: ", dado.range_min , " - ", dado.range_max )
@@ -41,12 +41,16 @@ def leu_imu(dado):
 	lista = [quat.x, quat.y, quat.z, quat.w]
 	angulos = np.degrees(transformations.euler_from_quaternion(lista))
 
+# Treinamento de reconhecimento facial  
+face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+
+
 ## Classes para o state machine
+
 #Classe para procurar o objeto
 class Procurar(smash.State):
-
 	def __init__(self):
-    	smach.State.__init__(self, outcomes=['objeto_1', 'objeto_2', 'nada'])
+    smach.State.__init__(self, outcomes=['objeto_1', 'objeto_2', 'nada'])
 
 	def execute(self, userdata):
 		velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.3))
@@ -58,7 +62,7 @@ class Procurar(smash.State):
     		return 'objeto_2'
     	
     	else: ##if nao acha nd:
-    		return 'nada'     
+    		return 'nada'
 
 #Apos encontrar o objeto, essa classe serve para seguir o objeto
 class Seguir(smash.State):
@@ -67,11 +71,9 @@ class Seguir(smash.State):
 
 	def execute(self, userdata):
   
-    	return 'longe'
-    
-    	return 'desviar'
-    
-    	return 'perto'     
+    return 'longe'
+    return 'desviar'    
+    return 'perto'     
 
 #Classe utilizada para desviar de objetos perto do robo
 class Desviar(smash.State):
@@ -124,13 +126,13 @@ class Som1(smash.State):
 	def __init__(self):
     	smach.State.__init__(self, outcomes=['tocado'])
 
-  	def execute(self, userdata):
-  		saida_som.publish(0)
-    	return 'tocado'
+  def execute(self, userdata):
+  	saida_som.publish(0)
+   	return 'tocado'
 
 class Som2(smash.State):
 	def __init__(self):
-    	smach.State.__init__(self, outcomes=['tocado'])
+   	smach.State.__init__(self, outcomes=['tocado'])
 
   	def execute(self, userdata):
   		saida_som.publish(2)
@@ -167,7 +169,6 @@ class Virar(smash.State):
 
 		if ang_atual <= ang_final+3 and ang_atual >= ang_final-3:
 			return 'virado'
-
 		else:
 			return 'virando'	
 
@@ -203,13 +204,13 @@ def main():
                                             'desviar': 'DESVIAR', #se scanear qq coisa perto (direção qualquer), retorna 'desviar' e roda 'DESVIAR'
                                             'perto': 'SOM_1'}) #se estiver perto do objeto, retorna 'perto' e roda 'SOM_1'
       
-        smach.StateMachine.add('DESVIAR', Desviar(), 
-                               transitions={'desviado': 'PROCURAR'},
-                                            'desviando': 'DESVIAR') #scaneia a direção e desvia, e retorna 'desviado' e roda 'PROCURAR'
+     	 smach.StateMachine.add('DESVIAR', Desviar(), 
+                             transitions={'desviado': 'PROCURAR'},
+                                          'desviando': 'DESVIAR') #scaneia a direção e desvia, e retorna 'desviado' e roda 'PROCURAR'
       
-        smach.StateMachine.add('SOM_1', Som1(), 
-                               transitions={'tocado': 'PROCURAR'}) #toca o som1, e retorna 'tocado' e roda 'PROCURAR'
-      
+      	smach.StateMachine.add('SOM_1', Som1(), 
+                             transitions={'tocado': 'PROCURAR'}) #toca o som1, e retorna 'tocado' e roda 'PROCURAR'
+
         smach.StateMachine.add('SOM_2', Som2(), 
                                transitionsd={'tocado': 'POS_INI'}) #toca o som2, e retorna 'tocado' e roda 'VIRAR'
 
@@ -219,11 +220,9 @@ def main():
         smach.StateMachine.add('VIRAR', Virar(), 
                                transitions={'virado': 'PROCURAR',
                                				'virando': 'VIRAR'}) #vira 180 graus, e retorna 'virado' e roda 'PROCURAR'
+  # Execute SMACH plan
+  outcome = sm.execute()
 
-    # Execute SMACH plan
-    outcome = sm.execute()
-
-face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
 if _name_ == '_main_':
     main()
