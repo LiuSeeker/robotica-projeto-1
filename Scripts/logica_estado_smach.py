@@ -1,3 +1,5 @@
+import smach
+import smach_ros
 import rospy
 import numpy as np
 import tf
@@ -10,16 +12,28 @@ from sensor_msgs.msg import Image, CompressedImage
 from cv_bridge import CvBridge, CvBridgeError
 import smach
 import smach_ros
-import cormodule
+
+face_cascade = cv2.CascadeClassifier('haarcascade_frontalcatface.xml')
+bridge = CvBridge()
+global cv_image
+global dif_x
+global media
+global centro
+cv_image = None
+dif_x = None
+media = 0
+centro = 0
+
+atraso = 1.5E9
+delay_frame = 0.05
 
 ## Importa cada uma das funcoes de seus respectivos arquivos
 
 
 def converte(valor):
-		return valor*44.4/0.501
+	return valor*44.4/0.501
 
 def roda_todo_frame(imagem):
-	print("frame")
 	global cv_image
 	global media
 	global centro
@@ -41,9 +55,7 @@ def roda_todo_frame(imagem):
 		gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
 		faces = face_cascade.detectMultiScale(gray, 1.3, 5)
 
-		
 		for(x,y,z,w) in faces:
-
 			cv2.rectangle(cv_image, (x,y), (x+z, y+w), (255,0,0), 2)
 			roi_gray = gray[y:y+w, x:x+z]
 			roi_color = cv_image[y:y+w, x:x+z]
@@ -59,15 +71,10 @@ def roda_todo_frame(imagem):
 			elif p ==1:
 				area2 = z*w
 
-			print(area1,area2)
-
-
 			if media != 0 :
 				dif_x = media-centro
 			else:
 				dif_x = None
-
-		media, centro, area =  cormodule.identifica_cor(cv_image)
 
 		cv2.imshow("Camera", cv_image)
 		cv2.waitKey(1)
@@ -98,6 +105,7 @@ class Procurar(smash.State):
 		velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.3))
 		
 		##if acha objeto 1:
+		if dif_x != None:
     		return 'objeto_1'
     	
     	##if acha objeto 1:
@@ -109,15 +117,73 @@ class Procurar(smash.State):
 #Apos encontrar o objeto, essa classe serve para seguir o objeto
 class Seguir(smash.State):
 	def __init__(self):
-    	smach.State.__init__(self, outcomes=['longe', 'desviar', 'perto'])
+    	smach.State.__init__(self, outcomes=['longe', 'mt_longe', 'desviar', 'perto', 'perdido'])
 
 	def execute(self, userdata):
-  
-    	return 'longe'
-    
-    	return 'desviar'
-    
-    	return 'perto'     
+  		global velocidade_saida
+		tolerancia = 20
+		desviar = False
+		longe = False
+		mt_longe = False
+		perdido = False
+
+		for i in range(len(distancias)):
+			if i <= 40:
+				if converte(distancias[i]) < 50 and converte(distancias[i]) != 0:
+					desviar = True
+			if i >= 320:
+				if converte(distancias[i]) < 50 and converte(distancias[i]) != 0:
+					desviar = True
+			if i <= 70 and i > 40:
+				if converte(distancias[i]) < 25 and converte(distancias[i]) != 0:
+					desviar = True
+			if i < 290 and i > 70:
+				if converte(distancias[i]) < 25 and converte(distancias[i]) != 0:
+					desviar = True
+
+
+		if  dif_x > tolerancia:
+			velocidade = Twist(Vector3(0,0,0), Vector3(0,0,-0.2))
+			rospy.sleep(delay_frame)
+			longe = True
+
+		if dif_x < -tolerancia and dif_x != None:
+			velocidade = Twist(Vector3(0,0,0), Vector3(0,0,0.2))
+			rospy.sleep(delay_frame)
+			longe = True
+
+		if dif_x > -tolerancia and dif_x < tolerancia:
+			if area2 = area1*1.1:
+				velocidade = Twist(Vector3(0,0,0), Vector3(0,0,0))
+				rospy.sleep(delay_frame)
+				perto = True
+			elif area2 <= area1 and area2 > area1*0.6:
+				velocidade = Twist(Vector3(0.3,0,0), Vector3(0,0,0))
+				rospy.sleep(delay_frame)
+				longe = True
+			elif area2 <= area1*0.6:
+				velocidade = Twist(Vector3(0.6,0,0), Vector3(0,0,0))
+				rospy.sleep(delay_frame)
+				mt_longe = True
+
+
+
+		if dif_x == None:
+			perdido = True
+
+		if desviar:
+			return 'desviar'
+    	if longe:
+    		velocidade_saida.publish(velocidade)
+    		return 'longe'
+    	if mt_longe:
+    		velocidade_saida.publish(velocidade)
+    		return 'mt_longe'
+    	if perdido:
+    		return 'perdido'
+    	if perto:
+    		velocidade_saida.publish(velocidade)
+    		return 'perto'  
 
 #Classe utilizada para desviar de objetos perto do robo
 class Desviar(smash.State):
@@ -125,6 +191,7 @@ class Desviar(smash.State):
     	smach.State.__init__(self, outcomes=['desviado', 'desviando'])
 
   	def execute(self, userdata):
+  		desviando = False
 
 		for i in range(len(distancias)):
 
@@ -159,7 +226,7 @@ class Desviar(smash.State):
 					velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.5))
 					desviando = True
 
-		if velocidade != None:
+		if desviando:
 			velocidade_saida.publish(velocidade)
 			return 'desviando'
 		else:
@@ -222,7 +289,7 @@ def main():
     global ang_inicial
 	global ang_final
     rospy.init_node('smach_example_state_machine')
-    #recebedor = rospy.Subscriber("/ar_pose_marker", AlvarMarkers, recebe)
+
 	saida_som = rospy.Publisher("/sound", Sound, queue_size = 2)
 
 	recebedor = rospy.Subscriber("/raspicam_node/image/compressed", CompressedImage, roda_todo_frame, queue_size=10, buff_size = 2**24)
@@ -246,8 +313,10 @@ def main():
 
         smach.StateMachine.add('SEGUIR', Seguir(), 
                                transitions={'longe':'SEGUIR', #se nao scnear nada perto, estiver longe do objeto e estiver com o objeto centralizado, retorna 'longe' e roda 'SEGUIR'
+                               				'mt_longe': "SEGUIR",
                                             'desviar': 'DESVIAR', #se scanear qq coisa perto (direção qualquer), retorna 'desviar' e roda 'DESVIAR'
-                                            'perto': 'SOM_1'}) #se estiver perto do objeto, retorna 'perto' e roda 'SOM_1'
+                                            'perto': 'SOM_1',
+                                            'perdido': 'PROCURAR'}) #se estiver perto do objeto, retorna 'perto' e roda 'SOM_1'
       
         smach.StateMachine.add('DESVIAR', Desviar(), 
                                transitions={'desviado': 'PROCURAR'},
@@ -268,8 +337,6 @@ def main():
 
     # Execute SMACH plan
     outcome = sm.execute()
-
-face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
 if _name_ == '_main_':
    	main()
