@@ -12,6 +12,8 @@ from sensor_msgs.msg import Image, CompressedImage
 from cv_bridge import CvBridge, CvBridgeError
 import smach
 import smach_ros
+import cormodule
+import tranformations
 
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalcatface.xml')
 bridge = CvBridge()
@@ -23,6 +25,7 @@ cv_image = None
 dif_x = None
 media = 0
 centro = 0
+media0 = None
 
 atraso = 1.5E9
 delay_frame = 0.05
@@ -76,6 +79,9 @@ def roda_todo_frame(imagem):
 			else:
 				dif_x = None
 
+		media0, centro0, area0 = cormodule.identifica_cor(cv_image)
+
+
 		cv2.imshow("Camera", cv_image)
 		cv2.waitKey(1)
 
@@ -108,7 +114,7 @@ class Procurar(smash.State):
 		if dif_x != None:
     		return 'objeto_1'
     	
-    	##if acha objeto 1:
+    	if media0 != (0,0):
     		return 'objeto_2'
     	
     	else: ##if nao acha nd:
