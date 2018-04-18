@@ -1,5 +1,16 @@
+import rospy
+import numpy as np
+import tf
+import math
+import cv2
+import time
+from geometry_msgs.msg import Twist, Vector3, Pose
+from nav_msgs.msg import Odometry
+from sensor_msgs.msg import Image, CompressedImage
+from cv_bridge import CvBridge, CvBridgeError
 import smach
 import smach_ros
+import cormodule
 
 ## Importa cada uma das funcoes de seus respectivos arquivos
 
@@ -8,26 +19,61 @@ def converte(valor):
 		return valor*44.4/0.501
 
 def roda_todo_frame(imagem):
+	print("frame")
 	global cv_image
-	global velocidade_saida
 	global media
 	global centro
+	global dif_x
+	global p
+	global area1, area2
 
-	cap = cv2.VideoCapture(0)
+	now = rospy.get_rostime()
+	imgtime = imagem.header.stamp
+	lag = now-imgtime
+	delay = lag.nsecs
 
-	ret, imagem = cap.read()
-	cv_image = bridge.compressed_imagemmsg_to_cv2(imagem, "bgr8")
-	gray = cv2.cvtColor(imagem, cv2.COLOR_BGR2GRAY)
-	faces = face_cascade.detectMultiScale(gray, 1.3, 5)
-	cv2.imshow("Camera", cv_image)
+	if delay > atraso and check_delay==True:
+		print("delay: {}".format(delay/1.0E9))
+		return
+	try:
+		cv_image = bridge.compressed_imgmsg_to_cv2(imagem, "bgr8")
 
-	for(x,y,z,w) in faces:
-		cv2.rectangle(imagem, (x,y), (x+z, y+w), (255,0,0), 2)
-		roi_gray = gray[y:y+w, x:x+z]
-		roi_color = imagem[y:y+w, x:x+z]
+		gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
+		faces = face_cascade.detectMultiScale(gray, 1.3, 5)
 
-		media = x+z/2
-		centro = imagem.shape[1]//2
+		
+		for(x,y,z,w) in faces:
+
+			cv2.rectangle(cv_image, (x,y), (x+z, y+w), (255,0,0), 2)
+			roi_gray = gray[y:y+w, x:x+z]
+			roi_color = cv_image[y:y+w, x:x+z]
+
+			media = x+z/2
+			centro = cv_image.shape[0]//1.5
+
+			if p == 0:
+				area1 = z*w
+				area2 = 0 
+				p = 1
+
+			elif p ==1:
+				area2 = z*w
+
+			print(area1,area2)
+
+
+			if media != 0 :
+				dif_x = media-centro
+			else:
+				dif_x = None
+
+		media, centro, area =  cormodule.identifica_cor(cv_image)
+
+		cv2.imshow("Camera", cv_image)
+		cv2.waitKey(1)
+
+	except CvBridgeError as e:
+		print("except", e)
 
 def scaneou(dado):
 	global distancias

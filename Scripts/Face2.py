@@ -27,16 +27,18 @@ global cv_image
 global dif_x
 global media
 global centro
+global area1, area2
+global p
 cv_image = None
 dif_x = None
-
+area1, area2 = 0,0
 atraso = 1.5E9
 delay_miranda = 0.05
 
 # Variáveis para permitir que o roda_todo_frame troque dados com a máquina de estados
 media = 0
 centro = 0
-
+p = 0
 
 
 def roda_todo_frame(imagem):
@@ -45,6 +47,8 @@ def roda_todo_frame(imagem):
 	global media
 	global centro
 	global dif_x
+	global p
+	global area1, area2
 
 	now = rospy.get_rostime()
 	imgtime = imagem.header.stamp
@@ -60,7 +64,9 @@ def roda_todo_frame(imagem):
 		gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
 		faces = face_cascade.detectMultiScale(gray, 1.3, 5)
 
+		
 		for(x,y,z,w) in faces:
+
 			cv2.rectangle(cv_image, (x,y), (x+z, y+w), (255,0,0), 2)
 			roi_gray = gray[y:y+w, x:x+z]
 			roi_color = cv_image[y:y+w, x:x+z]
@@ -68,12 +74,22 @@ def roda_todo_frame(imagem):
 			media = x+z/2
 			centro = cv_image.shape[0]//1.5
 
+			if p == 0:
+				area1 = z*w
+				area2 = 0 
+				p = 1
+
+			elif p ==1:
+				area2 = z*w
+
+			print(area1,area2)
+
+
 			if media != 0 :
 				dif_x = media-centro
 			else:
 				dif_x = None
 
-		print("nuaunw")
 		cv2.imshow("Camera", cv_image)
 		cv2.waitKey(1)
 
@@ -102,8 +118,10 @@ class Segue(smach.State):
 			velocidade_saida.publish(velocidade); rospy.sleep(delay_miranda)
 			return 'segue'
 		elif dif_x > -tolerancia and dif_x < tolerancia:
-			#velocidade = Twist(Vector3(0.2,0,0), Vector3(0,0,0))
-			velocidade = Twist(Vector3(0,0,0), Vector3(0,0,0))
+			if area2 > area1:
+				velocidade = Twist(Vector3(0.1,0,0), Vector3(0,0,0))
+			elif area2 <= area1:
+				velocidade = Twist(Vector3(0.4,0,0), Vector3(0,0,0))
 			velocidade_saida.publish(velocidade); rospy.sleep(delay_miranda)
 
 			return 'segue'
