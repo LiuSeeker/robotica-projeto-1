@@ -31,6 +31,7 @@ cv_image = None
 dif_x = None
 
 atraso = 1.5E9
+delay_miranda = 0.05
 
 # Variáveis para permitir que o roda_todo_frame troque dados com a máquina de estados
 media = 0
@@ -55,8 +56,6 @@ def roda_todo_frame(imagem):
 		return
 	try:
 		cv_image = bridge.compressed_imgmsg_to_cv2(imagem, "bgr8")
-		cv_top = cv_image.copy()
-		cv2.imshow("Camera", cv_top)
 
 		gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
 		faces = face_cascade.detectMultiScale(gray, 1.3, 5)
@@ -67,7 +66,7 @@ def roda_todo_frame(imagem):
 			roi_color = cv_image[y:y+w, x:x+z]
 
 			media = x+z/2
-			centro = cv_image.shape[0]//2
+			centro = cv_image.shape[0]//1.5
 
 			if media != 0 :
 				dif_x = media-centro
@@ -75,6 +74,8 @@ def roda_todo_frame(imagem):
 				dif_x = None
 
 		print("nuaunw")
+		cv2.imshow("Camera", cv_image)
+		cv2.waitKey(1)
 
 	except CvBridgeError as e:
 		print("except", e)
@@ -94,20 +95,21 @@ class Segue(smach.State):
 
 		if  dif_x > tolerancia:
 			velocidade = Twist(Vector3(0,0,0), Vector3(0,0,-0.2))
-			velocidade_saida.publish(velocidade); rospy.sleep(atraso)
+			velocidade_saida.publish(velocidade); rospy.sleep(delay_miranda)
 			return 'segue'
 		elif dif_x < -tolerancia and dif_x != None:
 			velocidade = Twist(Vector3(0,0,0), Vector3(0,0,0.2))
-			velocidade_saida.publish(velocidade); rospy.sleep(atraso)
+			velocidade_saida.publish(velocidade); rospy.sleep(delay_miranda)
 			return 'segue'
 		elif dif_x > -tolerancia and dif_x < tolerancia:
-			velocidade = Twist(Vector3(0.2,0,0), Vector3(0,0,0))
-			velocidade_saida.publish(velocidade); rospy.sleep(atraso)#! /usr/bin/env python
+			#velocidade = Twist(Vector3(0.2,0,0), Vector3(0,0,0))
+			velocidade = Twist(Vector3(0,0,0), Vector3(0,0,0))
+			velocidade_saida.publish(velocidade); rospy.sleep(delay_miranda)
 
 			return 'segue'
 		elif dif_x == None:
 			velocidade = Twist(Vector3(0,0,0), Vector3(0,0,0.5))
-			velocidade_saida.publish(velocidade); rospy.sleep(atraso)
+			velocidade_saida.publish(velocidade); rospy.sleep(delay_miranda)
 			return 'segue'
 		else:
 			return 'segue'
@@ -118,31 +120,17 @@ def main():
 	global buffer
 	rospy.init_node('cor_estados')
 
-	# Para usar a webcam 
-	#recebedor = rospy.Subscriber("/cv_camera/image_raw/compressed", CompressedImage, roda_todo_frame, queue_size=1, buff_size = 2**24)
 	recebedor = rospy.Subscriber("/raspicam_node/image/compressed", CompressedImage, roda_todo_frame, queue_size=10, buff_size = 2**24)
 
 	velocidade_saida = rospy.Publisher("/cmd_vel", Twist, queue_size = 1)
 
-	# Create a SMACH state machine
 	sm = smach.StateMachine(outcomes=['terminei'])
 
-	# Open the container
 	with sm:
-	    # Add states to the container
-	    #smach.StateMachine.add('LONGE', Longe(), 
-	    #                       transitions={'ainda_longe':'ANDANDO', 
-	    #                                    'perto':'terminei'})
-	    #smach.StateMachine.add('ANDANDO', Andando(), 
-	    #                       transitions={'ainda_longe':'LONGE'})
 	    smach.StateMachine.add('SEGUE', Segue(),
 	                            transitions={'segue': 'SEGUE'})
 
-
-	# Execute SMACH plan
 	outcome = sm.execute()
-	#rospy.spin()
-
 
 if __name__ == '__main__':
     main()
