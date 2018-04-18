@@ -1,26 +1,45 @@
 #!/usr/bin/env python
 
 import rospy
-from sensor_msgs.msg import LaserScan
-from geometry_msgs.msg import Twist
+import numpy as np
+from sensor_msgs.msg import Imu
+from geometry_msgs.msg import Twist, Vector3
+
+girando = False
+tempo_giro = 4*3.14*1e9
+tempo_inicio = -1
+tempo_fim = -1
+velocidade_saida = Twist(Vector3(0,0,0), Vector3(0,0,0))
 
 def girar(dado):
-	global velocidade_saida
-	global girar
-	rospy.loginfo('GIRANDO')
+	girando = False
 
-	if abs(girar) < 3:
-		vel = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.3))
-		velocidade_saida.publish(vel)
+	if girando:
+		tempo_fim = rospy.get_rostime()
+		if tempo_fim - tempo_inicio > tempo_giro:
+				vel = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.0))
+				velocidade_saida.publish(vel)
+				#return
+		else:
+			vel = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.5))
+			velocidade_saida.publish(vel)
+			#return
 	else:
-		vel = Twist(Vector3(0, 0, 0), Vector3(0, 0, girar * 0.5))
+		girando = True
+		tempo_inicio = rospy.get_rostime()
+		vel = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.5))
 		velocidade_saida.publish(vel)
-	if girar != 0:
-		if girar < 0: 
-			girar += 1
-		else: 
-			girar -= 1
-		return "Girando"
+		#return	
 
+
+if __name__ == "__main__":
+    rospy.init_node("girar_angulo")
+    velocidade_saida = rospy.Publisher("cmd_vel", Twist, queue_size=2)
+    #func = rospy.Subscriber("/imu",Imu, girar)
+
+    while not rospy.is_shutdown():
+		print("Main loop")
+		rospy.sleep(0.01)
+		girar("dummy")
 
 
