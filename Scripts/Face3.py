@@ -31,6 +31,7 @@ cv_image = None
 dif_x = None
 
 atraso = 1.5E9
+delay_miranda = 0.05
 
 # Variáveis para permitir que o roda_todo_frame troque dados com a máquina de estados
 media = 0
@@ -84,9 +85,9 @@ def roda_todo_frame(imagem):
 ## Classes - estados
 
 
-class Segue(smach.State):
+class Girando(smach.State):
     def __init__(self):
-        smach.State.__init__(self, outcomes=['segue'])
+        smach.State.__init__(self, outcomes=['alinhou', 'girando'])
 
     def execute(self, userdata):
 		global velocidade_saida
@@ -94,23 +95,43 @@ class Segue(smach.State):
 
 		if  dif_x > tolerancia:
 			velocidade = Twist(Vector3(0,0,0), Vector3(0,0,-0.2))
-			velocidade_saida.publish(velocidade); rospy.sleep(atraso)
-			return 'segue'
+			velocidade_saida.publish(velocidade); rospy.sleep(delay_miranda)
+			return 'girando'
 		elif dif_x < -tolerancia and dif_x != None:
 			velocidade = Twist(Vector3(0,0,0), Vector3(0,0,0.2))
-			velocidade_saida.publish(velocidade); rospy.sleep(atraso)
-			return 'segue'
+			velocidade_saida.publish(velocidade); rospy.sleep(delay_miranda)
+			return 'girando'
 		elif dif_x > -tolerancia and dif_x < tolerancia:
 			velocidade = Twist(Vector3(0.2,0,0), Vector3(0,0,0))
-			velocidade_saida.publish(velocidade); rospy.sleep(atraso)#! /usr/bin/env python
+			velocidade_saida.publish(velocidade); rospy.sleep(delay_miranda)#! /usr/bin/env python
 
-			return 'segue'
+			return 'alinhou'
 		elif dif_x == None:
 			velocidade = Twist(Vector3(0,0,0), Vector3(0,0,0.5))
-			velocidade_saida.publish(velocidade); rospy.sleep(atraso)
-			return 'segue'
+			velocidade_saida.publish(velocidade); rospy.sleep(delay_miranda)
+			return 'girando'
+
+
+class Centralizado(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['alinhando', 'alinhado'])
+
+    def execute(self, userdata):
+		global velocidade_saida
+
+		tolerancia = 50
+
+		if  dif_x > tolerancia:
+			return 'alinhando'
+		elif dif_x < -tolerancia:
+			return 'alinhando'
+		elif dif_x > -tolerancia and dif_x < tolerancia:
+			print(dif_x)
+			velocidade = Twist(Vector3(0.5,0,0), Vector3(0,0,0))
+			velocidade_saida.publish(velocidade); rospy.sleep(delay_miranda)
+			return 'alinhado'
 		else:
-			return 'segue'
+			return 'alinhando'
 
 # main
 def main():
@@ -135,8 +156,12 @@ def main():
 	    #                                    'perto':'terminei'})
 	    #smach.StateMachine.add('ANDANDO', Andando(), 
 	    #                       transitions={'ainda_longe':'LONGE'})
-	    smach.StateMachine.add('SEGUE', Segue(),
-	                            transitions={'segue': 'SEGUE'})
+	    smach.StateMachine.add('GIRANDO', Girando(),
+	                            transitions={'girando': 'GIRANDO',
+	                            'alinhou':'CENTRO'})
+	    smach.StateMachine.add('CENTRO', Centralizado(),
+	                            transitions={'alinhando': 'GIRANDO',
+	                            'alinhado':'CENTRO'})
 
 
 	# Execute SMACH plan

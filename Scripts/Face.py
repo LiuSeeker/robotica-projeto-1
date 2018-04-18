@@ -36,7 +36,6 @@ def main():
 				# Anda, se centralizado
 				vel = Twist(Vector3(0.5,0,0), Vector3(0,0,0))
 
-
 		cv2.imshow('ROSTOOOOOOOOOO',img)
 
 		key  = cv2.waitKey(1) & 0xFF
