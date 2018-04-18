@@ -1,3 +1,9 @@
+import rospy
+import smach
+
+
+#ARRUMAR OS IMPORTS 
+
 def area_cv(frame):
 	global centro, media, maior_cont
 	frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
