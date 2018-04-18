@@ -1,22 +1,33 @@
 import rospy
 import smach
+import numpy as np
+from geometry_msgs.msg import Twist, Vector3
+from sensor_msgs.msg import LaserScan
 
+def converte(valor):
+	return valor*44.4/0.501
 
 def longe(data):
 	global velocidade_saida
-	global andando, velLimite, objDist
-	rospy.loginfo('ANDANDO')
+	distancias = np.array(data.ranges)
+	rospy.loginfo('ANDANDO LONGE')
 	
-	V = velLimite * objDist
-	V = V * (andando/abs(andando))
-	vel = Twist(Vector3(V, 0, 0), Vector3(0, 0, 0))
-	velocidade_saida.publish(vel)
-	if andar != 0:
-		if andar < 0: 
-			andar+=1
-		else: 
-			andar-=1
-		return "Andando"
+	for i in range(len(distancias)):
+		if i <= 30 or i>= 330:
+			print(converte(distancias[i]))
+			
+			if converte(distancias[i]) >= 120:
+				V = 0.4
+				vel = Twist(Vector3(V, 0, 0), Vector3(0, 0, 0))
+				velocidade_saida.publish(vel)
+			elif converte(distancias[i]) >= 80:
+				V = 0.05*(converte(distancias[i])-10)
+				vel = Twist(Vector3(V, 0, 0), Vector3(0, 0, 0))
+				velocidade_saida.publish(vel)
+			elif converte(distancias[i]) >= 20:
+				V = 0.01*(converte(distancias[i])-10)
+				vel = Twist(Vector3(V, 0, 0), Vector3(0, 0, 0))
+				velocidade_saida.publish(vel)
 
 
 if __name__=="__main__":
