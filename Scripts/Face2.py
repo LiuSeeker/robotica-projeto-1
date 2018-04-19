@@ -38,7 +38,7 @@ delay_miranda = 0.05
 # Variáveis para permitir que o roda_todo_frame troque dados com a máquina de estados
 media = 0
 centro = 0
-p = 0
+p = False
 
 
 def roda_todo_frame(imagem):
@@ -74,12 +74,12 @@ def roda_todo_frame(imagem):
 			media = x+z/2
 			centro = cv_image.shape[0]//1.5
 
-			if p == 0:
+			if p == False:
 				area1 = z*w
-				area2 = 0 
-				p = 1
+				area2 = 0
+				p = True
 
-			elif p ==1:
+			elif p ==True:
 				area2 = z*w
 
 			print(area1,area2)
@@ -135,7 +135,6 @@ class Segue(smach.State):
 # main
 def main():
 	global velocidade_saida
-	global buffer
 	rospy.init_node('cor_estados')
 
 	recebedor = rospy.Subscriber("/raspicam_node/image/compressed", CompressedImage, roda_todo_frame, queue_size=10, buff_size = 2**24)

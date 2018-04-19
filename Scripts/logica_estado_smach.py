@@ -32,6 +32,7 @@ imu = []
 atraso = 1.5E9
 delay_frame = 0.05
 bateu = None
+p = False
 
 ######################################################################################################################################
 
@@ -114,13 +115,13 @@ def roda_todo_frame(imagem):
 			centro = cv_image.shape[0]//1.5 #Calcula a posição em x do centro da imagem
 
 			#Identificando a primeira interacao do 'for' (ao reconhecer gato) para calcular a area da figura
-			if p == 0:
+			if p == False:
 				area1 = z*w
 				area2 = 0
-				p = 1
+				p = True
 
 			#Calculando a area em todas as outras interacoes para definir a velocidade proporcional do robo
-			elif p == 1:
+			elif p == True:
 				area2 = z*w
 
 			#Caso tenha achado uma face, calcula a diferença entre o centro da face e o centro da imagem
