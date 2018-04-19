@@ -27,8 +27,8 @@ def identifica_cor(frame):
 	# do vermelho:
 	frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-	cor_menor = np.array([107, 50, 50])
-	cor_maior = np.array([123, 255, 255])
+	cor_menor = np.array([102, 100, 100])
+	cor_maior = np.array([110, 255, 255])
 	segmentado_cor = cv2.inRange(frame_hsv, cor_menor, cor_maior)
 
 	# A operação MORPH_CLOSE fecha todos os buracos na máscara menores 
