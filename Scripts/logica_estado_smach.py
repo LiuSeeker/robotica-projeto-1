@@ -190,7 +190,8 @@ class Seguir(smash.State):
 		perdido = False
 
 		if bateu:
-			#função bateu
+			Colidiu(#angulo
+				)
 			bateu = False
 		#Utilizando as distancias recebidas na funcao scaneou()
 		#A primeira distância na lista é a distância em frente ao robô,
@@ -292,7 +293,8 @@ class Desviar(smash.State):
   		desviando = False
 
   		if bateu:
-  			#Função para bater
+  			Colidiu(#angulo
+  				)
   			bateu = False
 
   		rospy.sleep(0.05)
@@ -387,6 +389,7 @@ class Virar(smash.State):
     	smach.State.__init__(self, outcomes=['virando', 'virado'])
 
   	def execute(self, userdata):
+  		global velocidade_saida
   		ang_atual = angulos[0]
 
 		velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.7))
