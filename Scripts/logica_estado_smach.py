@@ -22,14 +22,58 @@ global cv_image
 global dif_x
 global media
 global centro
+global imu
 cv_image = None
 dif_x = None
 media = 0
 centro = 0
 media0 = None
-
+imu = []
 atraso = 1.5E9
 delay_frame = 0.05
+bateu = None
+
+######################################################################################################################################
+
+#Função que analisa o IMU para detectar colisão
+def Imu(dado):
+	global imu, imu_acele, imu_media, bateu, ang
+	imu_acele = np.array(dado.linear_acceleration.x).round(decimals=2)
+	imu.append(imu_acele)
+	
+	#Pegando a media da lista recebida
+	if len(imu) >= 12: 
+		imu = imu[6:]
+	
+	imu_media = np.mean(imu)
+	ang = math.degrees(math.atan2(dado.linear_acceleration.x, dado.linear_acceleration.y))
+	
+	#Analisando se bateu
+	if abs(imu[-1] - imu_media) >= 3.5:
+		imu = []
+		bateu = True
+		return "Bateu"
+	return "Procurar"
+
+#Caso ele bata com imu essa função ajuda ele a sair
+def Colidiu(ang, dif):
+	global bateu
+
+	if ang <= 80:
+		vel = Twist(Vector3(-1.5,0,0), Vector3(0,0,-2))
+		velocidade_saida.publish(vel)
+		rospy.sleep(2)
+
+	elif ang < 100 and ang > 80:
+		vel = Twist(Vector3(-1.5,0,0), Vector3(0,0,2))
+		velocidade_saida.publish(vel)
+		rospy.sleep(2)
+
+	elif ang >= 100:
+		vel = Twist(Vector3(-1.5,0,0), Vector3(0,0,2))
+		velocidade_saida.publish(vel)
+		rospy.sleep(1.5)
+
 
 #Converte o valor da medida do LaserScan para centímetros
 def converte(valor):
@@ -107,6 +151,9 @@ def leu_imu(dado):
 	lista = [quat.x, quat.y, quat.z, quat.w]
 	angulos = np.degrees(transformations.euler_from_quaternion(lista))
 
+
+#####################################################################################################################################
+
 ## Classes para o state machine
 
 #Classe para procurar objetos de interesse
@@ -116,6 +163,7 @@ class Procurar(smash.State):
     	smach.State.__init__(self, outcomes=['objeto_1', 'objeto_2', 'nada'])
 
 	def execute(self, userdata):
+		global velocidade
 		velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.3))
 
 		#Se acha a face:
@@ -134,13 +182,16 @@ class Seguir(smash.State):
     	smach.State.__init__(self, outcomes=['longe', 'mt_longe', 'desviar', 'perto', 'perdido'])
 
 	def execute(self, userdata):
-  		global velocidade_saida
+  		global velocidade_saida, bateu
 		tolerancia = 20
 		desviar = False
 		longe = False
 		mt_longe = False
 		perdido = False
 
+		if bateu:
+			#função bateu
+			bateu = False
 		#Utilizando as distancias recebidas na funcao scaneou()
 		#A primeira distância na lista é a distância em frente ao robô,
 		#e o scan segue sentido anti-horário a partir da primeira distância (a frente do robô)
@@ -236,7 +287,15 @@ class Desviar(smash.State):
     	smach.State.__init__(self, outcomes=['desviado', 'desviando'])
 
   	def execute(self, userdata):
+  		global desviando, bateu
+
   		desviando = False
+
+  		if bateu:
+  			#Função para bater
+  			bateu = False
+
+  		rospy.sleep(0.05)
 
 		for i in range(len(distancias)):
 			#Faixa de scan na parte frontal esquerda do robô
@@ -311,12 +370,14 @@ class Pos_ini(smash.State):
     def execute(self, userdata):
     	global ang_inicial
 		global ang_final
+		global ang_varia
 		ang_inicial = angulos[0]
+		ang_varia = 180
 
-		if ang_inicial < 180 and ang_inicial >= 0:
-			ang_final = ang_inicial - 180
-		elif ang_inicial > -180 and ang_inicial < 0:
-			ang_final = ang_inicial + 180
+		if ang_inicial < ang_varia and ang_inicial >= 0:
+			ang_final = ang_inicial - ang_varia
+		elif ang_inicial > -ang_varia and ang_inicial < 0:
+			ang_final = ang_inicial + ang_varia
 
 		return 'pego'
 
