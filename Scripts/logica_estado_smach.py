@@ -31,10 +31,11 @@ media0 = None
 atraso = 1.5E9
 delay_frame = 0.05
 
-
+#Converte o valor da medida do LaserScan para centímetros
 def converte(valor):
 	return valor*44.4/0.501
 
+#Função que recebe a imagem da câmera
 def roda_todo_frame(imagem):
 	global cv_image
 	global media
@@ -43,57 +44,63 @@ def roda_todo_frame(imagem):
 	global p
 	global area1, area2
 
+	#Calcula o lag de frames
 	now = rospy.get_rostime()
 	imgtime = imagem.header.stamp
 	lag = now-imgtime
 	delay = lag.nsecs
-
 	if delay > atraso and check_delay==True:
 		print("delay: {}".format(delay/1.0E9))
 		return
+
 	try:
 		cv_image = bridge.compressed_imgmsg_to_cv2(imagem, "bgr8")
 
+		#Deixa a imagem da câmera preto e branco para ser utilizada na detecção de faces
 		gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
 		faces = face_cascade.detectMultiScale(gray, 1.3, 5)
 
+		#Detecta os pontos extremos da face
 		for(x,y,z,w) in faces:
-			cv2.rectangle(cv_image, (x,y), (x+z, y+w), (255,0,0), 2)
+			cv2.rectangle(cv_image, (x,y), (x+z, y+w), (255,0,0), 2) #Desenha um retângulo em volta da face
 			roi_gray = gray[y:y+w, x:x+z]
 			roi_color = cv_image[y:y+w, x:x+z]
 
-			media = x+z/2
-			centro = cv_image.shape[0]//1.5
+			media = x+z/2 #Calcula a posição em x do centro da face
+			centro = cv_image.shape[0]//1.5 #Calcula a posição em x do centro da imagem
 
-			#Identificando a primeira interacao do for (ao reconhecer gato) para calcular a area da figura
+			#Identificando a primeira interacao do 'for' (ao reconhecer gato) para calcular a area da figura
 			if p == 0:
 				area1 = z*w
 				area2 = 0
 				p = 1
 
 			#Calculando a area em todas as outras interacoes para definir a velocidade proporcional do robo
-			elif p ==1:
+			elif p == 1:
 				area2 = z*w
 
+			#Caso tenha achado uma face, calcula a diferença entre o centro da face e o centro da imagem
 			if media != 0 :
 				dif_x = media-centro
 			else:
 				dif_x = None
 
+		#Define o centro do objeto detectada por cor e o centro da imagem
 		media0, centro0, area0 = cormodule.identifica_cor(cv_image)
 
+		#Printa a imagem da câmera
 		cv2.imshow("Camera", cv_image)
 		cv2.waitKey(1)
 
 	except CvBridgeError as e:
 		print("except", e)
 
+#Define a lista de distâncias do scan do LaserScan
 def scaneou(dado):
 	global distancias
-	#print("Faixa valida: ", dado.range_min , " - ", dado.range_max )
-	#print("Leituras:")
 	distancias = np.array(dado.ranges)
 
+#Define o posicionamento pelo IMU
 def leu_imu(dado):
 	global angulos
 	quat = dado.orientation
@@ -101,7 +108,8 @@ def leu_imu(dado):
 	angulos = np.degrees(transformations.euler_from_quaternion(lista))
 
 ## Classes para o state machine
-#Classe para procurar o objeto
+
+#Classe para procurar objetos de interesse
 class Procurar(smash.State):
 
 	def __init__(self):
@@ -110,14 +118,14 @@ class Procurar(smash.State):
 	def execute(self, userdata):
 		velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.3))
 
-		##if acha objeto 1:
+		#Se acha a face:
 		if dif_x != None:
     		return 'objeto_1'
-
+    	#Se acha o objeto pela cor de interesse
     	if media0 != (0,0):
     		return 'objeto_2'
-
-    	else: ##if nao acha nd:
+    	#Se não acha nada
+    	else:
     		return 'nada'
 
 #Apos encontrar o objeto, essa classe serve para seguir o objeto
@@ -134,17 +142,27 @@ class Seguir(smash.State):
 		perdido = False
 
 		#Utilizando as distancias recebidas na funcao scaneou()
+		#A primeira distância na lista é a distância em frente ao robô,
+		#e o scan segue sentido anti-horário a partir da primeira distância (a frente do robô)
 		for i in range(len(distancias)):
+			#Faixa de scan na parte frontal esquerda do robô
 			if i <= 40:
+				#Se houver algo nessa faixa a uma distância menor que 50cm, deixa a flag 'Desviar' como True
 				if converte(distancias[i]) < 50 and converte(distancias[i]) != 0:
 					desviar = True
+			#Faixa de scan na parte frontal direita do robô
 			if i >= 320:
+				#Se houver algo nessa faixa a uma distância menor que 50cm, deixa a flag 'Desviar' como True
 				if converte(distancias[i]) < 50 and converte(distancias[i]) != 0:
 					desviar = True
+			#Faixa de scan na parte esquerda do robô
 			if i <= 70 and i > 40:
+				#Se houver algo nessa faixa a uma distância menor que 25cm, deixa a flag 'Desviar' como True
 				if converte(distancias[i]) < 25 and converte(distancias[i]) != 0:
 					desviar = True
+			#Faixa de scan na parte direita do robô
 			if i < 290 and i > 70:
+				#Se houver algo nessa faixa a uma distância menor que 25cm, deixa a flag 'Desviar' como True
 				if converte(distancias[i]) < 25 and converte(distancias[i]) != 0:
 					desviar = True
 
@@ -186,6 +204,7 @@ class Seguir(smash.State):
 				velocidade_saida.publish(velocidade)
     			return 'mt_longe'
 
+    	#Se a 
 		if dif_x == None:
 			perdido = True
 
@@ -220,41 +239,50 @@ class Desviar(smash.State):
   		desviando = False
 
 		for i in range(len(distancias)):
-
+			#Faixa de scan na parte frontal esquerda do robô
 			if i <= 40:
+				#Se houver algo nessa faixa a uma distância menor que 50cm, desvia
 				if converte(distancias[i]) < 50 and converte(distancias[i]) >= 30:
 					velocidade = Twist(Vector3(0.2, 0, 0), Vector3(0, 0, -0.7))
 					desviando = True
+				#Se houver algo nessa faixa a uma distância menor que 30cm, para e desvia
 				elif converte(distancias[i]) < 30 and  converte(distancias[i]) != 0:
 					velocidade = Twist(Vector3(-0.1, 0, 0), Vector3(0, 0, -0.9))
 					desviando = True
-
+			#Faixa de scan na parte frontal direita do robô
 			if i >= 320:
+				#Se houver algo nessa faixa a uma distância menor que 50cm, desvia
 				if converte(distancias[i]) < 50 and converte(distancias[i]) >= 30:
 					velocidade = Twist(Vector3(0.2, 0, 0), Vector3(0, 0, 0.7))
 					desviando = True
+				#Se houver algo nessa faixa a uma distância menor que 30cm, para e desvia
 				elif converte(distancias[i]) < 30 and  converte(distancias[i]) != 0:
 					velocidade = Twist(Vector3(-0.1, 0, 0), Vector3(0, 0, 0.9))
 					desviando = True
-
+			#Faixa de scan na parte esquerda do robô
 			if i <= 70 and i > 40:
+				#Se houver algo nessa faixa a uma distância menor que 25cm, desvia
 				if converte(distancias[i]) < 25 and converte(distancias[i]) != 0:
 					velocidade = Twist(Vector3(0.1, 0, 0), Vector3(0, 0, -0.5))
 					desviando = True
-
+			#Faixa de scan na parte direita do robô
 			if i < 320 and i >= 290:
+				#Se houver algo nessa faixa a uma distância menor que 25cm, desvia
 				if converte(distancias[i]) < 25 and converte(distancias[i]) != 0:
 					velocidade = Twist(Vector3(0.1, 0, 0), Vector3(0, 0, 0.5))
 					desviando = True
-
+			#Faixa de scan na parte traseira do robô
 			if i < 290 and i > 70:
+				#Se houver algo nessa faixa a uma distância menor que 25cm, para e desvia
 				if converte(distancias[i]) < 25 and converte(distancias[i]) != 0:
 					velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.5))
 					desviando = True
 
+		#Se estiver desviando, publica a velocidade e retorna 'desviando'
 		if desviando:
 			velocidade_saida.publish(velocidade)
 			return 'desviando'
+		#Se já acabou de desviar, retorna 'desviado'
 		else:
 			return 'desviado'
 
@@ -275,7 +303,7 @@ class Som2(smash.State):
   		saida_som.publish(2)
     	return 'tocado'
 
-#Classe que, quando rodada, grava o angulo atual como o inicial e defini o angulo final
+#Classe que, quando rodada, grava o angulo atual como o inicial e define o angulo final
 class Pos_ini(smash.State):
 	def __init__(self):
     	smach.State.__init__(self, outcomes=['pego'])
@@ -302,12 +330,12 @@ class Virar(smash.State):
 
 		velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.7))
 
-		velocidade_saida.publish(velocidade)
-
+		#Se já acabou de virar, retorna 'virado'
 		if ang_atual <= ang_final+3 and ang_atual >= ang_final-3:
 			return 'virado'
-
+		#Se estiver virando, publica a velocidade e retorna 'virando'
 		else:
+			velocidade_saida.publish(velocidade)
 			return 'virando'
 
 def main():
@@ -315,15 +343,15 @@ def main():
     global ang_inicial
 	global ang_final
     rospy.init_node('smach_example_state_machine')
-
+    #Publica o som
 	saida_som = rospy.Publisher("/sound", Sound, queue_size = 2)
-
+	#Dá subscribe na função 'roda_todo_frame'
 	recebedor = rospy.Subscriber("/raspicam_node/image/compressed", CompressedImage, roda_todo_frame, queue_size=10, buff_size = 2**24)
-
+	#Publica a velocidade
     velocidade_saida = rospy.Publisher("/cmd_vel", Twist, queue_size = 2)
-    # trazer o recebedor de laser para cá
+    #Dá subscribe na função 'scaneou'
     recebe_scan = rospy.Subscriber("/scan", LaserScan, scaneou)
-
+    #Dá subscribe na função 'leu_imu'
     recebe_imu = rospy.Subscriber("/imu", Imu, leu_imu)
 
     # Create a SMACH state machine
@@ -333,33 +361,33 @@ def main():
     with sm:
         # Add states to the container
         smach.StateMachine.add('PROCURAR', Procurar(),
-                               transitions={'objeto_1':'SEGUIR', #se achar o objeto 1, retorna 'objeto_1' e roda 'SEGUIR'
-                                            'objeto_2':'SOM_2', #se achar o objeto 2, retorna 'objeto_2' e roda 'SOM_2'
-                                            'nada': 'PROCURAR'}) #se não achar nada, retorna 'nada' e roda "VIRAR"
+                               transitions={'objeto_1':'SEGUIR', #se achar o objeto 1, retorna 'objeto_1' e executa 'SEGUIR'
+                                            'objeto_2':'SOM_2', #se achar o objeto 2, retorna 'objeto_2' e executa 'SOM_2'
+                                            'nada': 'PROCURAR'}) #se não achar nada, retorna 'nada' e executa "PROCURAR"
 
         smach.StateMachine.add('SEGUIR', Seguir(),
-                               transitions={'longe':'SEGUIR', #se nao scnear nada perto, estiver longe do objeto e estiver com o objeto centralizado, retorna 'longe' e roda 'SEGUIR'
-                               				'mt_longe': "SEGUIR",
-                                            'desviar': 'DESVIAR', #se scanear qq coisa perto (direção qualquer), retorna 'desviar' e roda 'DESVIAR'
-                                            'perto': 'SOM_1',
-                                            'perdido': 'PROCURAR'}) #se estiver perto do objeto, retorna 'perto' e roda 'SOM_1'
+                               transitions={'longe':'SEGUIR', #se nao scnear nada perto, estiver longe do objeto, retorna 'longe' e executa 'SEGUIR'
+                               				'mt_longe': "SEGUIR", #se nao scnear nada perto, estiver muito longe do objeto, retorna 'longe' e executa 'SEGUIR'
+                                            'desviar': 'DESVIAR', #se scanear qq coisa perto (direção qualquer), retorna 'desviar' e executa 'DESVIAR'
+                                            'perto': 'SOM_1', #se estiver perto do objeto, retorna 'perto' e executa 'SOM_1'
+                                            'perdido': 'PROCURAR'}) #perder o objeto, retorna 'perdido' e executa 'PROCURAR'
 
         smach.StateMachine.add('DESVIAR', Desviar(),
-                               transitions={'desviado': 'PROCURAR'},
-                                            'desviando': 'DESVIAR') #scaneia a direção e desvia, e retorna 'desviado' e roda 'PROCURAR'
+                               transitions={'desviado': 'PROCURAR'}, #se desviou, retorna 'desviado' e executa 'PROCURAR'
+                                            'desviando': 'DESVIAR') #scaneia a direção e desvia, e retorna 'desviado' e executa 'PROCURAR'
 
         smach.StateMachine.add('SOM_1', Som1(),
-                               transitions={'tocado': 'PROCURAR'}) #toca o som1, e retorna 'tocado' e roda 'PROCURAR'
+                               transitions={'tocado': 'PROCURAR'}) #toca o som1, e retorna 'tocado' e executa 'PROCURAR'
 
         smach.StateMachine.add('SOM_2', Som2(),
-                               transitionsd={'tocado': 'POS_INI'}) #toca o som2, e retorna 'tocado' e roda 'VIRAR'
+                               transitionsd={'tocado': 'POS_INI'}) #toca o som2, e retorna 'tocado' e executa 'PROCURAR'
 
       	smach.StateMachine.add('POS_INI', Pos_ini(),
-                               transitionsd={'pego': 'VIRAR'})
+                               transitionsd={'pego': 'VIRAR'}) #grava a posição atual, e retorna 'pego' e executa 'VIRAR'
 
         smach.StateMachine.add('VIRAR', Virar(),
-                               transitions={'virado': 'PROCURAR',
-                               				'virando': 'VIRAR'}) #vira 180 graus, e retorna 'virado' e roda 'PROCURAR'
+                               transitions={'virado': 'PROCURAR', #se virou 180 graus, retorna 'virado' e executa 'PROCURAR'
+                               				'virando': 'VIRAR'}) #se está virado 180 graus, e retorna 'virando' e executa 'VIRAR'
 
     # Execute SMACH plan
     outcome = sm.execute()
