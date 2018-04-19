@@ -36,26 +36,6 @@ p = False
 
 ######################################################################################################################################
 
-#Função que analisa o IMU para detectar colisão
-def Imu(dado):
-	global imu, imu_acele, imu_media, bateu, ang
-	imu_acele = np.array(dado.linear_acceleration.x).round(decimals=2)
-	imu.append(imu_acele)
-	
-	#Pegando a media da lista recebida
-	if len(imu) >= 12: 
-		imu = imu[6:]
-	
-	imu_media = np.mean(imu)
-	ang = math.degrees(math.atan2(dado.linear_acceleration.x, dado.linear_acceleration.y))
-	
-	#Analisando se bateu
-	if abs(imu[-1] - imu_media) >= 3.5:
-		imu = []
-		bateu = True
-		return "Bateu"
-	return "Procurar"
-
 #Caso ele bata com imu essa função ajuda ele a sair
 def Colidiu(ang, dif):
 	global bateu
@@ -147,10 +127,25 @@ def scaneou(dado):
 
 #Define o posicionamento pelo IMU
 def leu_imu(dado):
-	global angulos
-	quat = dado.orientation
-	lista = [quat.x, quat.y, quat.z, quat.w]
+	global angulos,imu, imu_acele, imu_media, bateu, ang
+
 	angulos = np.degrees(transformations.euler_from_quaternion(lista))
+
+	imu_acele = np.array(dado.linear_acceleration.x).round(decimals=2)
+	imu.append(imu_acele)
+	
+	#Pegando a media da lista recebida
+	if len(imu) >= 12: 
+		imu = imu[6:]
+	
+	imu_media = np.mean(imu)
+	
+	#Analisando se bateu
+	if abs(imu[-1] - imu_media) >= 3.5:
+		imu = []
+		bateu = True
+		return "Bateu"
+	return "Procurar"
 
 
 #####################################################################################################################################
