@@ -15,7 +15,8 @@ import smach_ros
 import cormodule
 import tranformations
 
-face_cascade = cv2.CascadeClassifier('haarcascade_frontalcatface.xml')
+#xml do haarcascade com o treinamento dos rostos de gatos
+face_cascade = cv2.CascadeClassifier('haarcascade_frontalcatface.xml') 
 bridge = CvBridge()
 global cv_image
 global dif_x
@@ -29,8 +30,6 @@ media0 = None
 
 atraso = 1.5E9
 delay_frame = 0.05
-
-## Importa cada uma das funcoes de seus respectivos arquivos
 
 
 def converte(valor):
@@ -66,11 +65,13 @@ def roda_todo_frame(imagem):
 			media = x+z/2
 			centro = cv_image.shape[0]//1.5
 
+			#Identificando a primeira interacao do for (ao reconhecer gato) para calcular a area da figura
 			if p == 0:
 				area1 = z*w
 				area2 = 0 
 				p = 1
 
+			#Calculando a area em todas as outras interacoes para definir a velocidade proporcional do robo 	
 			elif p ==1:
 				area2 = z*w
 
@@ -80,7 +81,6 @@ def roda_todo_frame(imagem):
 				dif_x = None
 
 		media0, centro0, area0 = cormodule.identifica_cor(cv_image)
-
 
 		cv2.imshow("Camera", cv_image)
 		cv2.waitKey(1)
@@ -133,6 +133,7 @@ class Seguir(smash.State):
 		mt_longe = False
 		perdido = False
 
+		#Utilizando as distancias recebidas na funcao scaneou()
 		for i in range(len(distancias)):
 			if i <= 40:
 				if converte(distancias[i]) < 50 and converte(distancias[i]) != 0:
@@ -147,7 +148,7 @@ class Seguir(smash.State):
 				if converte(distancias[i]) < 25 and converte(distancias[i]) != 0:
 					desviar = True
 
-
+		#Centralizando o rosto (no caso, do gato) de acordo com a tolerancia
 		if  dif_x > tolerancia:
 			velocidade = Twist(Vector3(0,0,0), Vector3(0,0,-0.2))
 			rospy.sleep(delay_frame)
@@ -158,39 +159,58 @@ class Seguir(smash.State):
 			rospy.sleep(delay_frame)
 			longe = True
 
+		#Uma vez centralizado, comparamos a area que o objeto ocupa do frame em relacao a area que ocupava inicialmente
+		#para decidir a velocidade que o robo pode andar
 		if dif_x > -tolerancia and dif_x < tolerancia:
+			#Caso a area esteja muito grande (ou seja, o objeto esta perto do robo), ele para, de maneira que nao colida
 			if area2 = area1*1.1:
 				velocidade = Twist(Vector3(0,0,0), Vector3(0,0,0))
 				rospy.sleep(delay_frame)
-				perto = True
+				#perto = True
+				velocidade_saida.publish(velocidade)
+    			return 'perto'  
+
+    		#Se o objeto estiver longe, podemos acelerar o robo	
 			elif area2 <= area1 and area2 > area1*0.6:
 				velocidade = Twist(Vector3(0.3,0,0), Vector3(0,0,0))
 				rospy.sleep(delay_frame)
-				longe = True
+				#longe = True
+				velocidade_saida.publish(velocidade)
+    			return 'longe'
+
+    		#Caso esteja muito longe, sua velocidade é maior ainda	
 			elif area2 <= area1*0.6:
 				velocidade = Twist(Vector3(0.6,0,0), Vector3(0,0,0))
 				rospy.sleep(delay_frame)
-				mt_longe = True
-
-
+				#mt_longe = True
+				velocidade_saida.publish(velocidade)
+    			return 'mt_longe'
 
 		if dif_x == None:
 			perdido = True
 
 		if desviar:
 			return 'desviar'
+
+    	if perdido:
+    		return 'perdido'
+    			
+		'''Comentei essas linhas para mostrar que elas estavam aqui, caso algo de errado, mas é possivel fazer as funcoes
+		   delas no codigo	
     	if longe:
     		velocidade_saida.publish(velocidade)
     		return 'longe'
+
     	if mt_longe:
     		velocidade_saida.publish(velocidade)
     		return 'mt_longe'
-    	if perdido:
-    		return 'perdido'
+
     	if perto:
     		velocidade_saida.publish(velocidade)
-    		return 'perto'  
+    		return 'perto'''
 
+
+    	  
 #Classe utilizada para desviar de objetos perto do robo
 class Desviar(smash.State):
 	def __init__(self):
