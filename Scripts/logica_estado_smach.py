@@ -8,7 +8,7 @@ import cv2
 import time
 from geometry_msgs.msg import Twist, Vector3, Pose
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import Image, CompressedImage
+from sensor_msgs.msg import Image, CompressedImage, LaserScan, Imu
 from cv_bridge import CvBridge, CvBridgeError
 import smach
 import smach_ros
@@ -16,7 +16,7 @@ import cormodule
 import tranformations
 
 #xml do haarcascade com o treinamento dos rostos de gatos
-face_cascade = cv2.CascadeClassifier('haarcascade_frontalcatface.xml') 
+face_cascade = cv2.CascadeClassifier('haarcascade_frontalcatface.xml')
 bridge = CvBridge()
 global cv_image
 global dif_x
@@ -68,10 +68,10 @@ def roda_todo_frame(imagem):
 			#Identificando a primeira interacao do for (ao reconhecer gato) para calcular a area da figura
 			if p == 0:
 				area1 = z*w
-				area2 = 0 
+				area2 = 0
 				p = 1
 
-			#Calculando a area em todas as outras interacoes para definir a velocidade proporcional do robo 	
+			#Calculando a area em todas as outras interacoes para definir a velocidade proporcional do robo
 			elif p ==1:
 				area2 = z*w
 
@@ -109,16 +109,16 @@ class Procurar(smash.State):
 
 	def execute(self, userdata):
 		velocidade = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0.3))
-		
+
 		##if acha objeto 1:
 		if dif_x != None:
     		return 'objeto_1'
-    	
+
     	if media0 != (0,0):
     		return 'objeto_2'
-    	
+
     	else: ##if nao acha nd:
-    		return 'nada'     
+    		return 'nada'
 
 #Apos encontrar o objeto, essa classe serve para seguir o objeto
 class Seguir(smash.State):
@@ -168,9 +168,9 @@ class Seguir(smash.State):
 				rospy.sleep(delay_frame)
 				#perto = True
 				velocidade_saida.publish(velocidade)
-    			return 'perto'  
+    			return 'perto'
 
-    		#Se o objeto estiver longe, podemos acelerar o robo	
+    		#Se o objeto estiver longe, podemos acelerar o robo
 			elif area2 <= area1 and area2 > area1*0.6:
 				velocidade = Twist(Vector3(0.3,0,0), Vector3(0,0,0))
 				rospy.sleep(delay_frame)
@@ -178,7 +178,7 @@ class Seguir(smash.State):
 				velocidade_saida.publish(velocidade)
     			return 'longe'
 
-    		#Caso esteja muito longe, sua velocidade é maior ainda	
+    		#Caso esteja muito longe, sua velocidade é maior ainda
 			elif area2 <= area1*0.6:
 				velocidade = Twist(Vector3(0.6,0,0), Vector3(0,0,0))
 				rospy.sleep(delay_frame)
@@ -194,9 +194,9 @@ class Seguir(smash.State):
 
     	if perdido:
     		return 'perdido'
-    			
+
 		'''Comentei essas linhas para mostrar que elas estavam aqui, caso algo de errado, mas é possivel fazer as funcoes
-		   delas no codigo	
+		   delas no codigo
     	if longe:
     		velocidade_saida.publish(velocidade)
     		return 'longe'
@@ -210,7 +210,7 @@ class Seguir(smash.State):
     		return 'perto'''
 
 
-    	  
+
 #Classe utilizada para desviar de objetos perto do robo
 class Desviar(smash.State):
 	def __init__(self):
@@ -228,7 +228,7 @@ class Desviar(smash.State):
 				elif converte(distancias[i]) < 30 and  converte(distancias[i]) != 0:
 					velocidade = Twist(Vector3(-0.1, 0, 0), Vector3(0, 0, -0.9))
 					desviando = True
-				
+
 			if i >= 320:
 				if converte(distancias[i]) < 50 and converte(distancias[i]) >= 30:
 					velocidade = Twist(Vector3(0.2, 0, 0), Vector3(0, 0, 0.7))
@@ -236,7 +236,7 @@ class Desviar(smash.State):
 				elif converte(distancias[i]) < 30 and  converte(distancias[i]) != 0:
 					velocidade = Twist(Vector3(-0.1, 0, 0), Vector3(0, 0, 0.9))
 					desviando = True
-				
+
 			if i <= 70 and i > 40:
 				if converte(distancias[i]) < 25 and converte(distancias[i]) != 0:
 					velocidade = Twist(Vector3(0.1, 0, 0), Vector3(0, 0, -0.5))
@@ -308,7 +308,7 @@ class Virar(smash.State):
 			return 'virado'
 
 		else:
-			return 'virando'	
+			return 'virando'
 
 def main():
     global velocidade_saida
@@ -332,32 +332,32 @@ def main():
     # Open the container
     with sm:
         # Add states to the container
-        smach.StateMachine.add('PROCURAR', Procurar(), 
+        smach.StateMachine.add('PROCURAR', Procurar(),
                                transitions={'objeto_1':'SEGUIR', #se achar o objeto 1, retorna 'objeto_1' e roda 'SEGUIR'
                                             'objeto_2':'SOM_2', #se achar o objeto 2, retorna 'objeto_2' e roda 'SOM_2'
                                             'nada': 'PROCURAR'}) #se não achar nada, retorna 'nada' e roda "VIRAR"
 
-        smach.StateMachine.add('SEGUIR', Seguir(), 
+        smach.StateMachine.add('SEGUIR', Seguir(),
                                transitions={'longe':'SEGUIR', #se nao scnear nada perto, estiver longe do objeto e estiver com o objeto centralizado, retorna 'longe' e roda 'SEGUIR'
                                				'mt_longe': "SEGUIR",
                                             'desviar': 'DESVIAR', #se scanear qq coisa perto (direção qualquer), retorna 'desviar' e roda 'DESVIAR'
                                             'perto': 'SOM_1',
                                             'perdido': 'PROCURAR'}) #se estiver perto do objeto, retorna 'perto' e roda 'SOM_1'
-      
-        smach.StateMachine.add('DESVIAR', Desviar(), 
+
+        smach.StateMachine.add('DESVIAR', Desviar(),
                                transitions={'desviado': 'PROCURAR'},
                                             'desviando': 'DESVIAR') #scaneia a direção e desvia, e retorna 'desviado' e roda 'PROCURAR'
-      
-        smach.StateMachine.add('SOM_1', Som1(), 
+
+        smach.StateMachine.add('SOM_1', Som1(),
                                transitions={'tocado': 'PROCURAR'}) #toca o som1, e retorna 'tocado' e roda 'PROCURAR'
-      
-        smach.StateMachine.add('SOM_2', Som2(), 
+
+        smach.StateMachine.add('SOM_2', Som2(),
                                transitionsd={'tocado': 'POS_INI'}) #toca o som2, e retorna 'tocado' e roda 'VIRAR'
 
-      	smach.StateMachine.add('POS_INI', Pos_ini(), 
+      	smach.StateMachine.add('POS_INI', Pos_ini(),
                                transitionsd={'pego': 'VIRAR'})
 
-        smach.StateMachine.add('VIRAR', Virar(), 
+        smach.StateMachine.add('VIRAR', Virar(),
                                transitions={'virado': 'PROCURAR',
                                				'virando': 'VIRAR'}) #vira 180 graus, e retorna 'virado' e roda 'PROCURAR'
 
