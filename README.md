@@ -1,3 +1,9 @@
+**Contribuidores/Contributors**:
+- [IagoMendes](https://github.com/IagoMendes)
+- [ehrhardt98](https://github.com/ehrhardt98)
+- [LiuSeeker](https://github.com/LiuSeeker)
+- [vitorsv1](https://github.com/vitorsv1)
+
 (PT-BR)
 
 ### Projeto 1 - Implementação de funcionalidades de sensores do TurtleBot personalizado
