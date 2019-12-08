@@ -3,6 +3,7 @@
 - [ehrhardt98](https://github.com/ehrhardt98)
 - [LiuSeeker](https://github.com/LiuSeeker)
 - [vitorsv1](https://github.com/vitorsv1)
+---
 
 (PT-BR)
 
