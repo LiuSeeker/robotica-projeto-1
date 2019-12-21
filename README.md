@@ -1,4 +1,5 @@
 **Contribuidores/Contributors**:
+- Prof. Fábio Miranda ([mirwox](https://github.com/mirwox))
 - [IagoMendes](https://github.com/IagoMendes)
 - [ehrhardt98](https://github.com/ehrhardt98)
 - [LiuSeeker](https://github.com/LiuSeeker)
